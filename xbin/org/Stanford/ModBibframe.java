@@ -213,7 +213,7 @@ public class ModBibframe
             DOMOutputter domOutput = new DOMOutputter();
             
             // display nice
-            domOutput.setFormat(Format.getPrettyFormat().setLineSeparator("\n"));
+            //domOutput.setFormat(Format.getPrettyFormat().setLineSeparator("\n"));
             org.w3c.dom.Document modDoc = domOutput.output(doc);
             
             return modDoc;
