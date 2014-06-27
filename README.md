@@ -27,9 +27,11 @@ The files in the conf directory contain text files that let the utility know whi
 
 -----
 
-Looking up Authority IDs to roll up into 'bf:Person' URI strings:
+Looking up Authority IDs to roll up into URI strings:
 
-The server.conf file is a special file that allows you to do a database lookup for an LC (or other) authority ID based on a given system's authority key. 
+(The following applies to all <bf:hasAuthority> elements except <bf:Topic>)
+
+The server.conf file is a special file that allows you to do a database lookup for an LC (or other) authority ID based on a given system's authority key. The purpose of this is to create unique URIs for different People, Organizations, Places, Events, etc. that may have the same name but are distinguished by an authority ID.
 
 This will work for MARC records output using the SirsiDynix Symphony catalogdump API (using the -z option) or with MARC records that contain an authority key in the '=' subfield of the output record.
 
@@ -37,7 +39,7 @@ Unless modified and recompiled in LookupAuthID.java, the SQL must be in the form
 
 select TABLE_ID_COL from TABLE_NAME where TABLE_KEY_COL = [the contents of the '=' subfield]
 
-If your ILS system does not support this scheme and you cannot (or do not) want to modify the Java classes, simply leave the server.conf file as provided without values.
+If your ILS system does not support this scheme and you cannot (or do not) want to modify the Java classes, simply leave the server.conf file as provided without values. If you have a different ILS and would like to see support for this functionality using your ILS, please contact Joshua Greben (jgreben@stanford.edu).
 
 -----
 
