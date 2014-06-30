@@ -49,6 +49,7 @@ public class ModBibframe
             }
             else
             {
+                System.err.println("\nMODIFYING BIBFRAME RDF");
                 System.err.println("BASE URI IS SET TO: " + baseURI);
             }
 
@@ -213,7 +214,7 @@ public class ModBibframe
             DOMOutputter domOutput = new DOMOutputter();
             
             // display nice
-            //domOutput.setFormat(Format.getPrettyFormat().setLineSeparator("\n"));
+            domOutput.setFormat(Format.getPrettyFormat().setLineSeparator("\n"));
             org.w3c.dom.Document modDoc = domOutput.output(doc);
             
             return modDoc;
@@ -362,8 +363,8 @@ public class ModBibframe
             {
                 URI_VALUE = uriHash.strToHash(URI_VALUE, "MD5");
             }
-            element.getAttribute("about", rdf).setValue(baseuri + URI_VALUE);
             
+            element.getAttribute("about", rdf).setValue(baseuri + URI_VALUE);
             uriMapper.put(lcURI, elementURI + authorityID);
         }
     }

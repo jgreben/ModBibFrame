@@ -22,6 +22,8 @@ public class MarcToXML {
     
     public static Document MarcToXML(String marc) {
 
+        System.err.println("\nCONVERTING MARC TO XML\n");
+
         try {
 
             InputStream input = new FileInputStream(marc);
@@ -39,9 +41,9 @@ public class MarcToXML {
                 {
                     Record record = reader.next();
 
-                    for (int s=0; s < subjectTagList.length; s++)
+                    try
                     {
-                        try
+                        for (int s=0; s < subjectTagList.length; s++)
                         {
                             List subjectFields = record.getVariableFields(subjectTagList[s]);
                             Iterator dataFieldIterator = subjectFields.iterator();
@@ -54,9 +56,20 @@ public class MarcToXML {
                                 dataField.addSubfield(factory.newSubfield('9',indicatorString));
                             }
                         }
-                        catch (NullPointerException e)
-                        {}
+
+                        List allFields = record.getDataFields();
+                        Iterator dataFieldIterator = allFields.iterator();
+
+                        while (dataFieldIterator.hasNext())
+                        {
+                            DataField dataField = (DataField) dataFieldIterator.next();
+                            Subfield questionMarkSubfield = dataField.getSubfield("?".charAt(0));
+                            dataField.removeSubfield(questionMarkSubfield);
+                        }
                     }
+                    catch (NullPointerException e)
+                    {}
+
                     writer.write(record);
                 }
                 catch (MarcException e)
@@ -66,8 +79,7 @@ public class MarcToXML {
             }
             writer.close();
             Document doc = (Document) result.getNode();
-            //NodeList n = doc.getElementsByTagName("record");
-            //System.out.println(n.getLength());
+            System.err.println("DONE WITH MARCXML CONVERSION\n");
             return doc;
         }
         catch (NullPointerException e)

@@ -80,6 +80,7 @@ public class Main {
         //XdmNode doc = builder.build(new File(marcxmluri));
         Document marcdom = MarcToXML.MarcToXML(marcuri);
         DOMSource marcSource = new DOMSource(marcdom);
+        System.err.println("\nCONVERTING MARCXML TO BIBFRAME\n");
         XdmNode doc = builder.build(marcSource);
 
         XPathCompiler xpath = proc.newXPathCompiler();
