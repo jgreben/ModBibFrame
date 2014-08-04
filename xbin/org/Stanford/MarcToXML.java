@@ -13,6 +13,7 @@ import org.marc4j.MarcStreamWriter;
 import org.marc4j.MarcWriter;
 import org.marc4j.MarcXmlWriter;
 import org.marc4j.marc.Record;
+import org.marc4j.marc.ControlField;
 import org.marc4j.marc.DataField;
 import org.marc4j.marc.Subfield;
 import org.marc4j.MarcException;
@@ -40,7 +41,7 @@ public class MarcToXML {
                 try
                 {
                     Record record = reader.next();
-
+                    
                     try
                     {
                         for (int s=0; s < subjectTagList.length; s++)
@@ -53,7 +54,8 @@ public class MarcToXML {
                                 DataField dataField = (DataField) dataFieldIterator.next();
                                 char ind2 = dataField.getIndicator2();
                                 String indicatorString = String.valueOf(ind2);
-                                dataField.addSubfield(factory.newSubfield('9',indicatorString));
+                                String stringtoAdd = "~" + indicatorString;
+                                dataField.addSubfield(factory.newSubfield('9',stringtoAdd));
                             }
                         }
 
@@ -68,7 +70,22 @@ public class MarcToXML {
                         }
                     }
                     catch (NullPointerException e)
-                    {}
+                    {   
+                        System.err.println(e.getMessage());
+
+                        String recordNum = "";
+                        List cfl = record.getControlFields();
+                        Iterator cfit = cfl.iterator();
+                        while (cfit.hasNext())
+                        {
+                            ControlField cf = (ControlField) cfit.next();
+                            if (cf.getTag().equals("001"))
+                            {
+                                recordNum = cf.getData();
+                            }
+                        }
+                        System.err.println(recordNum);
+                    }
 
                     writer.write(record);
                 }
