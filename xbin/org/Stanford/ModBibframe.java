@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.List;
 import java.util.Iterator;
 import java.util.ArrayList;
@@ -36,7 +37,8 @@ public class ModBibframe
     public static CreateHash uriHash = new CreateHash();
 
     public static LookupAuthID lookup = new LookupAuthID();
-    public static Properties props = lookup.getProps();
+    public static Properties props = PropGet.getProps("conf/server.conf");
+    //public static Properties props = lookup.getProps();
     public static Connection connection = lookup.OpenAuthDBConnection(props);
 
     public static org.w3c.dom.Document ModBibframe(org.w3c.dom.Document rdfFile, String baseURI, boolean createhash) throws Exception
@@ -76,20 +78,28 @@ public class ModBibframe
 
             Iterator<Element> annotationIterator = annotations.iterator();
             ArrayList<String> annotationsResourcesList = new ArrayList<String>(getSubElementList("annotations_resources"));
+            String myAnnotationURI = "";
             while (annotationIterator.hasNext())
             {
-                Element myAnnotation = (Element) annotationIterator.next();
-                String myAnnotationURI = myAnnotation.getAttribute("about", rdf).getValue();
-                Element annotationDerivedFrom = myAnnotation.getChild("derivedFrom", bf);
-                String annotationResourceURI = "";
-                int cutoff;
-                if (annotationDerivedFrom != null)
+                try
                 {
-                    annotationResourceURI = annotationDerivedFrom.getAttribute("resource", rdf).getValue();
-                    cutoff = annotationResourceURI.indexOf(".marcxml.xml");
-                    uriMapper.put(annotationResourceURI.substring(0,cutoff),myAnnotationURI); 
+                    Element myAnnotation = (Element) annotationIterator.next();
+                    myAnnotationURI = myAnnotation.getAttribute("about", rdf).getValue();
+                    Element annotationDerivedFrom = myAnnotation.getChild("derivedFrom", bf);
+                    String annotationResourceURI = "";
+                    int cutoff;
+                    if (annotationDerivedFrom != null)
+                    {
+                        annotationResourceURI = annotationDerivedFrom.getAttribute("resource", rdf).getValue();
+                        cutoff = annotationResourceURI.indexOf(".marcxml.xml");
+                        uriMapper.put(annotationResourceURI.substring(0,cutoff),myAnnotationURI); 
+                    }
+                    ModURIforResources(myAnnotation, annotationsResourcesList, bf, rdf, baseURI, createHash);
                 }
-                ModURIforResources(myAnnotation, annotationsResourcesList, bf, rdf, baseURI, createHash);
+                catch (NullPointerException e)
+                {
+                    System.err.println(e.getMessage());
+                }
             }
 
             //Title
@@ -101,6 +111,10 @@ public class ModBibframe
             List persons = rootNode.getChildren("Person", bf);
             ArrayList<String> personsList = new ArrayList<String>(getSubElementList("persons"));
             ModURIforElements(persons, personsList, bf, rdf, madsrdf, baseURI, createHash);
+            
+            //Agents
+            List agents = rootNode.getChildren("Agent", bf);
+            ModURIforElements(agents, personsList, bf, rdf, madsrdf, baseURI, createHash);
             
             //Organization
             List organizations = rootNode.getChildren("Organization", bf);
@@ -191,12 +205,15 @@ public class ModBibframe
 
             //Work (must be last so that rdf:resources can be set)
             List works = rootNode.getChildren("Work", bf);
+            //System.err.println("Number of Works:" + works.size());
+            
             ArrayList<String> worksList = new ArrayList<String>(getSubElementList("works"));
             ModURIforElements(works, worksList, bf, rdf, madsrdf, baseURI, createHash);
-
-            Iterator<Element> workIterator = works.iterator();
+            
             ArrayList<String> worksResourcesList = new ArrayList<String>(getSubElementList("works_resources"));
             ArrayList<String> relatorTermsList = new ArrayList<String>(getSubElementList("relators"));
+
+            Iterator<Element> workIterator = works.iterator();
             while (workIterator.hasNext())
             {
                 Element myWork = (Element) workIterator.next();
@@ -223,6 +240,10 @@ public class ModBibframe
         {
             t.printStackTrace();
         }
+        /*catch (org.jdom2.IllegalDataException e)
+        {
+            System.err.println(e.getCause());
+        }*/
         return null;
     }
 
@@ -240,6 +261,12 @@ public class ModBibframe
                 {
                     String lcResourceURI = myAttribute.getValue();
                     String myResourceURI = uriMapper.get(lcResourceURI);
+                    
+                    /*if (lcResourceURI != null)
+                    {
+                        System.err.println(lcResourceURI + " (" + myResourceURI + ")");
+                    }*/
+
                     if (myResourceURI != null)
                     {
                         String URI_VALUE = myResourceURI.toLowerCase();
@@ -287,111 +314,127 @@ public class ModBibframe
     public static void ModURIforElements(List listOfElements, ArrayList<String> subElements, Namespace bf, Namespace rdf, Namespace madsrdf, 
                                             String baseuri, boolean cretaeHash)
     {
+        String lcURI = "";
         Iterator<Element> elementIterator = listOfElements.iterator();
         while (elementIterator.hasNext())
         {
-            List<String> listOfStrings = new ArrayList<String>();
-            Element element = (Element) elementIterator.next();
-            String lcURI = element.getAttribute("about", rdf).getValue();
-            
-            Element subElement;
-            String elementURI = "";
-            String subElementString = "";
-            String authorityKey = "";
-            String authorityID = "";
-            String textElement = "";
-            
-            for (int s = 0; s < subElements.size(); s++)
+            try
             {
-                String myChild = subElements.get(s).trim();
-                if (myChild.equals("hasAuthority"))
+                List<String> listOfStrings = new ArrayList<String>();
+                Element element = (Element) elementIterator.next();
+                lcURI = element.getAttribute("about", rdf).getValue();
+
+                Element subElement;
+                String elementURI = "";
+                String subElementString = "";
+                String authorityKey = "";
+                String authorityID = "";
+                String authorityString = "";
+                String textElement = "";
+                String textReplacement = "";
+
+                for (int s = 0; s < subElements.size(); s++)
                 {
-                    Element hasAuthority = element.getChild("hasAuthority", bf);
-                    if (hasAuthority != null)
+                    String myChild = subElements.get(s).trim();
+                    if (myChild.equals("hasAuthority"))
                     {
-                        Element authorityNode = hasAuthority.clone();
-                        String[] subElementStringArray = getStringAndAuthorityKey(authorityNode, madsrdf);
-                        if (element.getName() != null && element.getName() != "Topic")
+                        Element hasAuthority = element.getChild("hasAuthority", bf);
+                        if (hasAuthority != null)
                         {
-                            try
+                            String elementName = element.getName();
+                            if (elementName != null && !elementName.equals("Topic"))
                             {
-                                authorityKey = subElementStringArray[1].trim();
-                                String regex = "[-\\s]";
-                                Pattern pattern = Pattern.compile(regex);
-                                Matcher matcher = pattern.matcher(authorityKey);
-                                while (matcher.find()) 
-                                {
-                                    int idx = matcher.start();
-                                    authorityKey = authorityKey.substring(0,idx);
-                                }
+                                Element authority = hasAuthority.getChild("Authority", madsrdf);
+                                Element authLabel = authority.getChild("authoritativeLabel", madsrdf);
+                                authorityString = authLabel.getText();
+                                authorityKey = getAuthorityKey(authorityString);
+
                                 if (authorityKey != "")
                                 {
                                     authorityID = LookupAuthID.LookupAuthIDfromDB(authorityKey, connection, props);
                                 }
-                                subElementString = stripPunctAndSpace(subElementStringArray[0]);   
+
+                                subElementString = stripPunctAndSpace(CleanupAuthKeys.removeAuthKeyfromString(authorityString));   
                             }
-                            catch (ArrayIndexOutOfBoundsException e)
-                            {}
-                            catch (StringIndexOutOfBoundsException e)
-                            {}
                         }
                     }
-                }
-                else
-                {   
-                    if (element.getContentSize() > 0)
-                    {
-                        subElement = element.getChild(myChild, bf);
-                        if (subElement != null)
+                    else
+                    {   
+                        if (element.getContentSize() > 0)
                         {
-                            textElement = subElement.getText();
+                            subElement = element.getChild(myChild, bf);
+                            if (subElement != null)
+                            {
+                                textElement = subElement.getText();
+                            }
+
+                            if (textElement.indexOf("^A") > 0)
+                            {
+                                textElement = CleanupAuthKeys.removeAuthKeyfromString(textElement);
+                            }
                         }
+
+                        subElementString = stripPunctAndSpace(textElement);
                     }
-                    subElementString = stripPunctAndSpace(textElement);
+
+                    if (!listOfStrings.contains(subElementString))
+                    {    
+                        elementURI += subElementString.toLowerCase();
+                        listOfStrings.add(subElementString);
+                    }
                 }
-                
-                if (!listOfStrings.contains(subElementString))
-                {    
-                    elementURI += subElementString.toLowerCase();
-                    listOfStrings.add(subElementString);
+
+                //Set the Element rdf:about URI
+                String URI_VALUE = elementURI + authorityID.toLowerCase();
+                if (createHash)
+                {
+                    URI_VALUE = uriHash.strToHash(URI_VALUE, "MD5");
                 }
+
+                element.getAttribute("about", rdf).setValue(baseuri + URI_VALUE);
+                uriMapper.put(lcURI, elementURI + authorityID);
             }
-            
-            //Set the Element rdf:about URI
-            String URI_VALUE = elementURI + authorityID.toLowerCase();
-            if (createHash)
+            catch (ArrayIndexOutOfBoundsException e)
             {
-                URI_VALUE = uriHash.strToHash(URI_VALUE, "MD5");
+                e.printStackTrace();
             }
-            
-            element.getAttribute("about", rdf).setValue(baseuri + URI_VALUE);
-            uriMapper.put(lcURI, elementURI + authorityID);
+            catch (StringIndexOutOfBoundsException e)
+            {
+                e.printStackTrace();
+            }
+            catch (NullPointerException e)
+            {
+                System.err.println(e.getMessage());
+            }
+
         }
+
     }
 
-    public static String[] getStringAndAuthorityKey(Element hasAuthority, Namespace madsrdf)
+    public static String getAuthorityKey(String authorityString)
     {
-        String[] result = new String[2];
-        result[0] = "";
-        result[1] = "";
-        
-        Element authority = hasAuthority.getChild("Authority", madsrdf);
-        String authorityString = authority.getChild("authoritativeLabel", madsrdf).getText();
-        
-        if (authorityString.indexOf("^A") > 0)
+        String result = "";
+        Pattern p = Pattern.compile("\\^A[0-9]+");
+
+        try
         {
-            result = authorityString.split("\\^A");
-        }
-        else
-        {
-            if (authorityString != null)
+            if (authorityString.indexOf("^A") > 0)
             {
-                result[0] = authorityString;
+                Matcher m = p.matcher(authorityString);
+                while (m.find())
+                {
+                    String key = m.group(0);
+                    result = key.substring(key.indexOf("^A")+2);
+                }
             }
+        }
+        catch (NullPointerException e)
+        {
+            System.err.println(e.getMessage());
         }
         return result;
     }
-    
+        
     public static String stripPunctAndSpace(String str)
     {
         //for time being also strip out authority key from 6XX field until this can be removed from all Topics except madsrdf...
@@ -405,12 +448,22 @@ public class ModBibframe
         {
             Scanner s = new Scanner(new File("conf/" + filename));
             ArrayList<String> result = new ArrayList<String>();
+            String line = "";
+
             while (s.hasNext())
             {
-                result.add(s.next());
+                line = s.next();   
+                if (line.indexOf("#") != 0)
+                {
+                    result.add(line);
+                }
             }
             s.close();
             return result;
+        }
+        catch (NoSuchElementException e)
+        {
+            //e.printStackTrace();
         }
         catch (FileNotFoundException e)
         {
