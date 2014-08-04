@@ -22,6 +22,7 @@ import javax.xml.transform.TransformerException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.io.*;
 
 import java.text.SimpleDateFormat;
@@ -32,30 +33,62 @@ public class Main {
     public static void main(String[] args) throws Exception  {
 
         String marcuri = "";
-        String logdir = "";
-        String baseuri = "http://linked-data.stanford.edu/";
-        boolean createHash = false;
+        //String logdir = "";
+        //String baseuri = "http://linked-data.stanford.edu/";
+        //String createBnode = "false";
+        //boolean createHash = false;
+        //boolean cleanup = true;
 
+        Properties props = new Properties();
+        props = PropGet.getProps("conf/conversion.conf");
+        
+        String LOGDIR = props.getProperty("LOGDIR");
+        String BASEURI = props.getProperty("BASEURI");
+        String CREATE_BNODE = props.getProperty("CREATE_BNODE");
+        String CREATE_HASH = props.getProperty("CREATE_HASH");
+        String CLEANUP = props.getProperty("CLEANUP");
+
+        boolean createHash = Boolean.valueOf(CREATE_HASH);
+        boolean cleanup = Boolean.valueOf(CLEANUP);
+        
         try 
         {
             marcuri = args[0];
+        }
+        catch (ArrayIndexOutOfBoundsException e)
+        {
+            System.out.println("Usage: Main [marc file]");
+            System.out.println("Result is StreamResult. Redirect to stdout/err as needed.");
+            System.exit(1);
+        }
+        /*try 
+        {
+            marcuri = args[0];
+            
             if(args.length > 1 && args[1] != null) {
-                createHash = Boolean.valueOf(args[1]);
+                logdir = args[1];
             }
             if(args.length > 2 && args[2] != null) {
-                logdir = args[2];
+                createHash = Boolean.valueOf(args[2]);
             }
             if(args.length > 3 && args[3] != null) {
-                baseuri = args[3];
+                createBnode = args[3];
+            }
+            if(args.length > 4 && args[4] != null) {
+                baseuri = args[4];
+            }
+            if(args.length > 4 && args[5] != null) {
+                cleanup = Boolean.valueOf(args[5]);
             }
         }
         catch (ArrayIndexOutOfBoundsException e)
         {
-            System.out.println("Usage: Main [marc file] [create hash (true | false)] [logdir] [baseuri]");
+            System.out.println("Usage: Main [marc file] [logdir] [create hash (true | *false*)] [create Bnodes (true | *false*)] [cleanup Auth keys (*true* | false)] [baseuri]");
             System.out.println("Result is StreamResult. Redirect to stdout/err as needed.");
-        }
+            System.exit(1);
+        }*/
 
-        String savelog = logdir + new SimpleDateFormat("yyyyMMdd'T'HHmmssmmmmmm").format(Calendar.getInstance().getTime()) + ".log.xml";
+        String savelog = LOGDIR + new SimpleDateFormat("yyyyMMdd'T'HHmmssmmmmmm").format(Calendar.getInstance().getTime()) + ".log.xml";
 
         String startDT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.mmmmmmZ").format(Calendar.getInstance().getTime());
 
@@ -103,7 +136,7 @@ public class Main {
             "let $controlnum := xs:string($r/marcxml:controlfield[@tag eq \"001\"][1]) \n" +
             "let $httpuri := fn:concat($baseuri , $controlnum) \n" +
             "let $bibframe :=  marcbib2bibframe:marcbib2bibframe($r,$httpuri) \n" +
-            "let $rdf :=  RDFXMLnested2flat:RDFXMLnested2flat($bibframe,$httpuri) \n" +
+            "let $rdf :=  RDFXMLnested2flat:RDFXMLnested2flat($bibframe,$httpuri,\"" + CREATE_BNODE + "\") \n" +
             "return $rdf \n" +
             "return $resources \n";
 
@@ -141,7 +174,7 @@ public class Main {
 
             try {
                 qe.setExternalVariable(new QName("marcxml"), (XdmNode)item);
-                qe.setExternalVariable(new QName("baseuri"), new XdmAtomicValue(baseuri));
+                qe.setExternalVariable(new QName("baseuri"), new XdmAtomicValue(BASEURI));
 
                 Document n;
                 n = dfactory.newDocumentBuilder().newDocument();
@@ -174,7 +207,7 @@ public class Main {
                 logroot.appendChild(logentry);
 
                 Attr attruri = log.createAttribute("uri");
-                attruri.setValue(baseuri + cf001);
+                attruri.setValue(BASEURI + cf001);
                 logentry.setAttributeNode(attruri);
 
                 Attr attrdt = log.createAttribute("datetime");
@@ -200,7 +233,7 @@ public class Main {
                     logroot.appendChild(logentry);
 
                     Attr attruri = log.createAttribute("uri");
-                    attruri.setValue(baseuri + cf001);
+                    attruri.setValue(BASEURI + cf001);
                     logentry.setAttributeNode(attruri);
 
                     Attr attrdt = log.createAttribute("datetime");
@@ -294,8 +327,16 @@ public class Main {
 
         // Output XML
         //source = new DOMSource(rdfxml.getDocumentElement());
-        Document modSource = ModBibframe.ModBibframe(rdfxml, baseuri, createHash);
-        source = new DOMSource(modSource);
+        Document modSource = ModBibframe.ModBibframe(rdfxml, BASEURI, createHash);
+        if (cleanup)
+        {
+            Document cleanedSource = CleanupAuthKeys.Cleanup(modSource);
+            source = new DOMSource(cleanedSource);
+        }
+        else
+        {
+            source = new DOMSource(modSource);
+        }
         streamResult = new StreamResult(System.out);
         t.transform(source, streamResult);
         
