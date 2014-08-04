@@ -17,7 +17,9 @@ public class LookupAuthID
     private static OracleDataSource ods = null;
     public static String result = "";
 
-    public static Properties getProps()
+    Properties props = new Properties();
+
+    /*public static Properties getProps()
     {
         Properties props = new Properties();
         try 
@@ -41,13 +43,13 @@ public class LookupAuthID
         }
         
         return props;
-    }
+    }*/
     
     public static Connection OpenAuthDBConnection(Properties props)
     { 
         String url = "";
 
-        props = getProps();
+        props = PropGet.getProps("conf/server.conf");
         String USER = props.getProperty("USER");
         String PASS = props.getProperty("PASS");
         String SERVER = props.getProperty("SERVER");
