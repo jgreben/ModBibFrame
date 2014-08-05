@@ -9,9 +9,13 @@ The ModBibFrame utility takes a file of MARC records and creates a DOM object of
 
 To run the ModBibFrame utility from within the xbin directory do:
 
-java -classpath .:lib/myMarc4j.jar:lib/jdom-2.0.5.jar:lib/saxon9he.jar:lib/ojdbc14.jar Main /path/to/MARC/records.mrc [ Create hash from URI string (true | false) ] /path/to/log/directory/and/log.filename [ baseURI (e.g. http://linked-data.stanford.edu) ]
-
+java -classpath .:lib/myMarc4j.jar:lib/jdom-2.0.5.jar:lib/saxon9he.jar:lib/ojdbc14.jar Main /path/to/MARC/records.mrc
+<br>
+<!--java -classpath .:lib/myMarc4j.jar:lib/jdom-2.0.5.jar:lib/saxon9he.jar:lib/ojdbc14.jar Main /path/to/MARC/records.mrc [ Create hash from URI string (true | false) ] /path/to/log/directory/and/log.filename [ baseURI (e.g. http://linked-data.stanford.edu) ]
+-->
 The output BIBFRAME record is a StreamResult, so redirect standard out and standard error as necessary.
+
+Customize the conf/convert.conf file to set the appropriate outcome for the log path, base uri, whether to create bnodes, whether to create an MD5 hash, and whether to cleanup Authority keys.
 
 -----
 
