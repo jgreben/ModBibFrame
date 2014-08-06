@@ -175,6 +175,8 @@ public class CleanupAuthKeys
         String textReplacement = "";
         
         original = textElement;
+        textReplacement = textElement;
+        
         Matcher m1 = p1.matcher(original);
 
         while (m1.find())

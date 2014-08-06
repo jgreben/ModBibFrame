@@ -88,11 +88,13 @@ public class ModBibframe
                     Element annotationDerivedFrom = myAnnotation.getChild("derivedFrom", bf);
                     String annotationResourceURI = "";
                     int cutoff;
+                    int basecut;
                     if (annotationDerivedFrom != null)
                     {
                         annotationResourceURI = annotationDerivedFrom.getAttribute("resource", rdf).getValue();
                         cutoff = annotationResourceURI.indexOf(".marcxml.xml");
-                        uriMapper.put(annotationResourceURI.substring(0,cutoff),myAnnotationURI); 
+                        basecut = baseURI.length();
+                        uriMapper.put(annotationResourceURI, annotationResourceURI.substring(basecut, cutoff)); 
                     }
                     ModURIforResources(myAnnotation, annotationsResourcesList, bf, rdf, baseURI, createHash);
                 }
@@ -330,6 +332,7 @@ public class ModBibframe
                 String authorityKey = "";
                 String authorityID = "";
                 String authorityString = "";
+                String authorityStringURI = "";
                 String textElement = "";
                 String textReplacement = "";
 
@@ -341,21 +344,29 @@ public class ModBibframe
                         Element hasAuthority = element.getChild("hasAuthority", bf);
                         if (hasAuthority != null)
                         {
+                            Element authority = hasAuthority.getChild("Authority", madsrdf);
+                            Element authLabel = authority.getChild("authoritativeLabel", madsrdf);
+                            authorityString = authLabel.getText();
+
                             String elementName = element.getName();
                             if (elementName != null && !elementName.equals("Topic"))
                             {
-                                Element authority = hasAuthority.getChild("Authority", madsrdf);
-                                Element authLabel = authority.getChild("authoritativeLabel", madsrdf);
-                                authorityString = authLabel.getText();
                                 authorityKey = getAuthorityKey(authorityString);
 
-                                if (authorityKey != "")
+                                if (authorityKey != null && authorityKey != "")
                                 {
                                     authorityID = LookupAuthID.LookupAuthIDfromDB(authorityKey, connection, props);
                                 }
 
                                 subElementString = stripPunctAndSpace(CleanupAuthKeys.removeAuthKeyfromString(authorityString));   
                             }
+
+                            if (authorityString != null && authorityString != "")
+                            {
+                                authorityStringURI = stripPunctAndSpace(CleanupAuthKeys.removeAuthKeyfromString(authorityString));
+                                hasAuthority.setAttribute("about", authorityStringURI, rdf);
+                            }
+
                         }
                     }
                     else
