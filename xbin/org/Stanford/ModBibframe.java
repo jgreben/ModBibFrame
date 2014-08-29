@@ -10,8 +10,6 @@ import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.Properties;
 import java.util.Scanner;
 import java.lang.Boolean;
@@ -38,7 +36,6 @@ public class ModBibframe
 
     public static LookupAuthID lookup = new LookupAuthID();
     public static Properties props = PropGet.getProps("conf/server.conf");
-    //public static Properties props = lookup.getProps();
     public static Connection connection = lookup.OpenAuthDBConnection(props);
 
     public static org.w3c.dom.Document ModBibframe(org.w3c.dom.Document rdfFile, String baseURI, boolean createhash) throws Exception
@@ -109,33 +106,39 @@ public class ModBibframe
             ArrayList<String> titlesList = new ArrayList<String>(getSubElementList("titles"));
             ModURIforElements(titles, titlesList, bf, rdf, madsrdf, baseURI, createHash);
                         
+            //Agents
+            List agents = rootNode.getChildren("Agent", bf);
+            ArrayList<String> agentList = new ArrayList<String>(getSubElementList("agents"));
+            ModURIforElements(agents, agentList, bf, rdf, madsrdf, baseURI, createHash);
+            
             //Person
             List persons = rootNode.getChildren("Person", bf);
             ArrayList<String> personsList = new ArrayList<String>(getSubElementList("persons"));
+            CleanupAuth.modMads(persons, baseURI, createHash, bf, rdf, madsrdf);
             ModURIforElements(persons, personsList, bf, rdf, madsrdf, baseURI, createHash);
-            
-            //Agents
-            List agents = rootNode.getChildren("Agent", bf);
-            ModURIforElements(agents, personsList, bf, rdf, madsrdf, baseURI, createHash);
             
             //Organization
             List organizations = rootNode.getChildren("Organization", bf);
             ArrayList<String> organizationsList = new ArrayList<String>(getSubElementList("organizations"));
+            CleanupAuth.modMads(organizations, baseURI, createHash, bf, rdf, madsrdf);
             ModURIforElements(organizations, organizationsList, bf, rdf, madsrdf, baseURI, createHash);
             
             //Meeting
             List meetings = rootNode.getChildren("Meeting", bf);
             ArrayList<String> meetingsList = new ArrayList<String>(getSubElementList("meetings"));
+            CleanupAuth.modMads(meetings, baseURI, createHash, bf, rdf, madsrdf);
             ModURIforElements(meetings, meetingsList, bf, rdf, madsrdf, baseURI, createHash);
 
             //Event
             List events = rootNode.getChildren("Event", bf);
             ArrayList<String> eventsList = new ArrayList<String>(getSubElementList("events"));
+            CleanupAuth.modMads(events, baseURI, createHash, bf, rdf, madsrdf);
             ModURIforElements(events, eventsList, bf, rdf, madsrdf, baseURI, createHash);
 
             //Topic
             List topics = rootNode.getChildren("Topic", bf);
             ArrayList<String> topicsList = new ArrayList<String>(getSubElementList("topics"));
+            CleanupAuth.modMads(topics, baseURI, createHash, bf, rdf, madsrdf);
             ModURIforElements(topics, topicsList, bf, rdf, madsrdf, baseURI, createHash);
 
             Iterator<Element> topicIterator = topics.iterator();
@@ -149,6 +152,7 @@ public class ModBibframe
             //Place
             List places = rootNode.getChildren("Place", bf);
             ArrayList<String> placesList = new ArrayList<String>(getSubElementList("places"));
+            CleanupAuth.modMads(places, baseURI, createHash, bf, rdf, madsrdf);
             ModURIforElements(places, placesList, bf, rdf, madsrdf, baseURI, createHash);
             
             Iterator<Element> placeIterator = places.iterator();
@@ -162,12 +166,18 @@ public class ModBibframe
             //Language
             List languages = rootNode.getChildren("Language", bf);
             ArrayList<String> languagesList = new ArrayList<String>(getSubElementList("languages"));
+            CleanupAuth.modMads(languages, baseURI, createHash, bf, rdf, madsrdf);
             ModURIforElements(languages, languagesList, bf, rdf, madsrdf, baseURI, createHash);
                         
             //Classification
             List classifications = rootNode.getChildren("Classification", bf);
             ArrayList<String> classificationsList = new ArrayList<String>(getSubElementList("classifications"));
             ModURIforElements(classifications, classificationsList, bf, rdf, madsrdf, baseURI, createHash);
+            
+            //Intended Audience
+            List audiences = rootNode.getChildren("IntendedAudience", bf);
+            ArrayList<String> intendedAudienceList = new ArrayList<String>(getSubElementList("audiences"));
+            ModURIforElements(audiences, intendedAudienceList, bf, rdf, madsrdf, baseURI, createHash);
             
             //Instance
             List instances = rootNode.getChildren("Instance", bf);
@@ -210,6 +220,7 @@ public class ModBibframe
             //System.err.println("Number of Works:" + works.size());
             
             ArrayList<String> worksList = new ArrayList<String>(getSubElementList("works"));
+            CleanupAuth.cleanupWorks(works, bf, madsrdf);
             ModURIforElements(works, worksList, bf, rdf, madsrdf, baseURI, createHash);
             
             ArrayList<String> worksResourcesList = new ArrayList<String>(getSubElementList("works_resources"));
@@ -331,10 +342,13 @@ public class ModBibframe
                 String subElementString = "";
                 String authorityKey = "";
                 String authorityID = "";
+                String authorityURI = "";
                 String authorityString = "";
                 String authorityStringURI = "";
                 String textElement = "";
                 String textReplacement = "";
+                String VIAFTagNum = "921";
+                String locURI = "http://id.loc.gov/authorities/";
 
                 for (int s = 0; s < subElements.size(); s++)
                 {
@@ -351,22 +365,47 @@ public class ModBibframe
                             String elementName = element.getName();
                             if (elementName != null && !elementName.equals("Topic"))
                             {
-                                authorityKey = getAuthorityKey(authorityString);
+                                authorityKey = lookup.getAuthorityKey(authorityString);
 
                                 if (authorityKey != null && authorityKey != "")
                                 {
-                                    authorityID = LookupAuthID.LookupAuthIDfromDB(authorityKey, connection, props);
+                                    authorityID = lookup.LookupAuthIDfromDB(authorityKey, connection, props);
                                 }
 
-                                subElementString = stripPunctAndSpace(CleanupAuthKeys.removeAuthKeyfromString(authorityString));   
+                                subElementString = stripPunctAndSpace(CleanupAuth.removeAuthKeyfromString(authorityString));   
                             }
 
-                            if (authorityString != null && authorityString != "")
+                            if (authorityID != null && authorityID.length() > 0)
                             {
-                                authorityStringURI = stripPunctAndSpace(CleanupAuthKeys.removeAuthKeyfromString(authorityString));
-                                hasAuthority.setAttribute("about", authorityStringURI, rdf);
+                                authorityURI = lookup.LookupAuthURIfromDB(authorityID, VIAFTagNum, connection);
+                                
+                                //System.err.println("authID" + authorityID);
+                                //System.err.println("authURI" + authorityURI);
+                                
+                                if (authorityURI != null && authorityURI.length() > 0)
+                                {
+                                    if (authorityURI.indexOf("viaf") > 0)
+                                    {
+                                        hasAuthority.setAttribute("resource", authorityURI, rdf);
+                                    }
+                                    else if (authorityURI.toLowerCase().matches("(n[a-z])([0-9]+)"))
+                                    {
+                                        locURI += "names/" + authorityURI.toLowerCase(); 
+                                        hasAuthority.setAttribute("resource", locURI, rdf);
+                                    }
+                                    else if (authorityURI.toLowerCase().matches("(sh)([0-9]+)"))
+                                    {
+                                        locURI += "subjects/" + authorityURI.toLowerCase(); 
+                                        hasAuthority.setAttribute("resource", locURI, rdf);
+                                    }
+                                }
+                                else if (authorityString != null && authorityString != "")
+                                {
+                                    authorityStringURI = CleanupAuth.removeAuthKeyfromString(authorityString);
+                                    authorityStringURI = stripPunctAndSpace(authorityStringURI).toLowerCase();
+                                    hasAuthority.setAttribute("about", baseuri + authorityStringURI, rdf);
+                                }
                             }
-
                         }
                     }
                     else
@@ -381,7 +420,7 @@ public class ModBibframe
 
                             if (textElement.indexOf("^A") > 0)
                             {
-                                textElement = CleanupAuthKeys.removeAuthKeyfromString(textElement);
+                                textElement = CleanupAuth.removeAuthKeyfromString(textElement);
                             }
                         }
 
@@ -422,34 +461,11 @@ public class ModBibframe
 
     }
 
-    public static String getAuthorityKey(String authorityString)
-    {
-        String result = "";
-        Pattern p = Pattern.compile("\\^A[0-9]+");
-
-        try
-        {
-            if (authorityString.indexOf("^A") > 0)
-            {
-                Matcher m = p.matcher(authorityString);
-                while (m.find())
-                {
-                    String key = m.group(0);
-                    result = key.substring(key.indexOf("^A")+2);
-                }
-            }
-        }
-        catch (NullPointerException e)
-        {
-            System.err.println(e.getMessage());
-        }
-        return result;
-    }
-        
     public static String stripPunctAndSpace(String str)
     {
         //for time being also strip out authority key from 6XX field until this can be removed from all Topics except madsrdf...
-        String strippedString = str.replaceAll("\\p{Punct}+|\\p{Space}+|[A]{1}[0-9]+", "");
+        //String strippedString = str.replaceAll("\\p{Punct}+|\\p{Space}+|[A]{1}[0-9]+", "");
+        String strippedString = str.replaceAll("\\p{Punct}+|\\p{Space}+", "");
         return strippedString;
     }
 
