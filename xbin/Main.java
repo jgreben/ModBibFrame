@@ -338,6 +338,8 @@ public class Main {
             source = new DOMSource(modSource);
         }
         streamResult = new StreamResult(System.out);
+        
+        System.err.println("\nWRITING FILE...");
         t.transform(source, streamResult);
         
         System.err.println("\nDONE!");
