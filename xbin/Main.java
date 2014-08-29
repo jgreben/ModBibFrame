@@ -33,11 +33,6 @@ public class Main {
     public static void main(String[] args) throws Exception  {
 
         String marcuri = "";
-        //String logdir = "";
-        //String baseuri = "http://linked-data.stanford.edu/";
-        //String createBnode = "false";
-        //boolean createHash = false;
-        //boolean cleanup = true;
 
         Properties props = new Properties();
         props = PropGet.getProps("conf/conversion.conf");
@@ -61,33 +56,7 @@ public class Main {
             System.out.println("Result is StreamResult. Redirect to stdout/err as needed.");
             System.exit(1);
         }
-        /*try 
-        {
-            marcuri = args[0];
-            
-            if(args.length > 1 && args[1] != null) {
-                logdir = args[1];
-            }
-            if(args.length > 2 && args[2] != null) {
-                createHash = Boolean.valueOf(args[2]);
-            }
-            if(args.length > 3 && args[3] != null) {
-                createBnode = args[3];
-            }
-            if(args.length > 4 && args[4] != null) {
-                baseuri = args[4];
-            }
-            if(args.length > 4 && args[5] != null) {
-                cleanup = Boolean.valueOf(args[5]);
-            }
-        }
-        catch (ArrayIndexOutOfBoundsException e)
-        {
-            System.out.println("Usage: Main [marc file] [logdir] [create hash (true | *false*)] [create Bnodes (true | *false*)] [cleanup Auth keys (*true* | false)] [baseuri]");
-            System.out.println("Result is StreamResult. Redirect to stdout/err as needed.");
-            System.exit(1);
-        }*/
-
+        
         String savelog = LOGDIR + new SimpleDateFormat("yyyyMMdd'T'HHmmssmmmmmm").format(Calendar.getInstance().getTime()) + ".log.xml";
 
         String startDT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.mmmmmmZ").format(Calendar.getInstance().getTime());
