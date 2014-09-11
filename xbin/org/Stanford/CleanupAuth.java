@@ -28,8 +28,11 @@ public class CleanupAuth
     public static DOMBuilder builder = new DOMBuilder();
     public static LookupAuthID lookup = new LookupAuthID();
     public static Properties props = PropGet.getProps("conf/server.conf");
+    public static Properties convProps = PropGet.getProps("conf/conversion.conf");
     public static Connection connection = lookup.OpenAuthDBConnection(props);
 
+    public static String parseType = convProps.getProperty("PARSE");
+    
     public static  ArrayList <String> getMadsType()
     {
         ArrayList <String> madsType = new ArrayList <String>(8);
@@ -49,6 +52,7 @@ public class CleanupAuth
     public static org.w3c.dom.Document Cleanup(org.w3c.dom.Document rdfFile) throws Exception
     {
         System.err.println("\nCLEANING UP AUTHORITY KEYS");
+        System.err.println("Parse Type is " + parseType);
 
         Document doc = (Document) builder.build(rdfFile);
         Element rootNode = doc.getRootElement();
@@ -81,6 +85,10 @@ public class CleanupAuth
         //Event
         List events = rootNode.getChildren("Event", bf);
         removeAuthKeyfromString(events, cleanupList, bf, madsrdf);
+        
+        //Temporal
+        List temporals = rootNode.getChildren("Temporal", bf);
+        removeAuthKeyfromString(temporals, cleanupList, bf, madsrdf);
 
         //Topic
         List topics = rootNode.getChildren("Topic", bf);
@@ -137,14 +145,24 @@ public class CleanupAuth
                 String textToClean = "";
                 String cleanText = "";
                 String madsString = "";
+                String predicate = "";
                 String[] pair;
 
                 if (headings.length > 1)
                 {
                     //create the componentList
                     Element componentList = new Element("componentList", madsrdf);
-                    Attribute parseType = new Attribute("parseType", "Resource", rdf);
-                    componentList.setAttribute(parseType);
+                    Attribute parseTypeAttrib = new Attribute("parseType", parseType, rdf);
+                    componentList.setAttribute(parseTypeAttrib);
+
+                    if (parseType.equals("Collection"))
+                    {
+                        predicate = "about";
+                    }
+                    else if (parseType.equals("Resource"))
+                    {
+                        predicate = "resource";
+                    }
 
 
                     for (int h=0; h < headings.length; h++)
@@ -177,8 +195,9 @@ public class CleanupAuth
                                 cleanHeading = CreateHash.strToHash(cleanHeading, "MD5");
                             }
 
+                            madsClass = stripPunctAndSpace(madsClass);
                             Element madsElement = new Element(madsClass, madsrdf);
-                            Attribute componentAttrib = new Attribute("resource", baseuri + cleanHeading, rdf);
+                            Attribute componentAttrib = new Attribute(predicate, baseuri + cleanHeading, rdf);
                             madsElement.setAttribute(componentAttrib);
 
                             textHeading = removeAuthKeyfromString(heading);
@@ -359,6 +378,7 @@ public class CleanupAuth
         String textReplacement = "";
 
         original = element.getText();
+
         Matcher m1 = p1.matcher(original);
         while (m1.find())
         {
