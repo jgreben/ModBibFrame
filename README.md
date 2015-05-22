@@ -3,9 +3,11 @@ ModBibFrame
 
 A Modified version of the marc2bibframe conversion tool based on a wrapper script proveded by Kevin Ford
 
-This utility will accept a file of MARC bibliographic records as input and output modified BIBFRAME records. It uses the marc2bibframe XQuery modules (https://github.com/lcnetdev/marc2bibframe) as well as a Java wrapper all provided by Kevin Ford (https://github.com/kefo). The original Java wrapper is provided in a Gist here: https://gist.github.com/kefo/10416746
+This utility will accept a file of MARC bibliographic records as input and output modified Bibframe records. It uses the marc2bibframe XQuery modules (https://github.com/lcnetdev/marc2bibframe) as well as a Java wrapper all provided by Kevin Ford (https://github.com/kefo). The original Java wrapper is provided in a Gist: https://gist.github.com/kefo/10416746
 
-The ModBibFrame utility takes a file of MARC records and creates a DOM object of them using the marc4j utility (https://github.com/marc4j/marc4j). This allows the MARC records to be converted into A DOM object that is passed directly to the BIBFRAME conversion script. The output of marc2bibframe is also a DOM that is passed directly to the ModBibFrame class for post-processing using JDOM2. The post-processing involves the modification of the Bibframe URIs into hashable strings based on the contents of the elements' child nodes. These modifications will allow for consitent URIs across batches of records. The output Bibframe RDF is a StreamResult, so redirect standard out and standard error as necessary.
+The ModBibFrame utility takes a file of MARC records and 1) creates a DOM object of them using the marc4j utility (https://github.com/marc4j/marc4j). This allows the MARCXML records to be passed directly to the Bibframe conversion script wrapper. The output of marc2bibframe in this context is also a DOM that is then passed directly to the ModBibFrame class for post-processing using JDOM2.
+
+The post-processing involves the replacement of the default generated Bibframe URIs into local URI's with hashable strings that are created using the element's text content. A mapping object is used to keep track of the default generated LC URIs and turn them into the new local URIs. This allows for consitently linking URIs across batches of records. The output Bibframe RDF is a StreamResult, so redirect standard out and standard error as necessary.
 
 To run the ModBibFrame utility from within the xbin directory do:
 
@@ -27,13 +29,13 @@ Place all JAR files in the xbin/lib directory.
 
 -----
 
-Looking up Authority IDs to roll up into URI strings:
+Optionally Looking up Authority IDs to roll up into URI strings:
 
 (The following applies to all <bf:hasAuthority> elements except <bf:Topic>)
 
 The server.conf file is a special file that allows you to do a database lookup for an LC (or other) authority ID based on a given system's authority key. The purpose of this is to create unique URIs for different People, Organizations, Places, Events, etc. that may have the same name but are distinguished by an authority ID.
 
-This will work for MARC records output using the SirsiDynix Symphony catalogdump API (using the -z option) or with MARC records that contain an authority key in the '=' subfield of the output record.
+This will only work for dumped MARC records that are output with an authority key in the '=' subfield of the output record (for example by using the SirsiDynix Symphony catalogdump API [using the -z option]).
 
 Unless modified and recompiled in LookupAuthID.java, the SQL must be in the form of:
 
