@@ -15,7 +15,7 @@ java -classpath .:lib/myMarc4j.jar:lib/jdom-2.0.5.jar:lib/saxon9he.jar:lib/ojdbc
 
 The files in the conf directory contain text files that let the utility know which Bibframe element text you choose to be rolled up into a `rdf:about` or `rdf:resource` URI. The files indicated by the _resources suffix tell the utility to convert the corresponding rdf:resource URI to match the rdf:about URI.
 
-Customize the conf/convert.conf file to set the appropriate outcome for the log path, base uri, whether to create bnodes, whether to create an MD5 hash, and whether to cleanup Authority keys (see below).
+Customize the conf/convert.conf file to set the appropriate outcome for the log path, base uri, whether to create bnodes, whether to create an MD5 hash, and whether to use (ans subsequently cleanup) Authority keys as part of the hasAuthority element (see below).
 
 -----
 
