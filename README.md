@@ -3,7 +3,7 @@ ModBibFrame
 
 A Modified version of the marc2bibframe conversion tool based on a wrapper script proveded by Kevin Ford
 
-This utility will accept a file of MARC bibliographic records as input and output modified BIBFRAME records. It uses the marc2bibframe XQuery modules (https://github.com/lcnetdev/marc2bibframe) as well as a Java wrapper all provided by Kevin Ford. The original Java wrapper is provided in a Gist here: https://gist.github.com/kefo/10416746
+This utility will accept a file of MARC bibliographic records as input and output modified BIBFRAME records. It uses the marc2bibframe XQuery modules (https://github.com/lcnetdev/marc2bibframe) as well as a Java wrapper all provided by Kevin Ford (https://github.com/kefo). The original Java wrapper is provided in a Gist here: https://gist.github.com/kefo/10416746
 
 The ModBibFrame utility takes a file of MARC records and creates a DOM object of them using the marc4j utility (https://github.com/marc4j/marc4j). A modified JAR file is provided that has the most recently updated MarcXMLWriter source code. This allows the MARC records to be converted into A DOM object that is passed directly to the BIBFRAME conversion script. A final step in this process involves the modification of the BIBFRAME URIs into hashable strings based on the contents of the elements' child nodes. This modification step will allow for consitent URIs across batches of records. The output DOM document is passed directly to the ModBibFrame class for processing using JDOM, and an output stream is the result.
 
